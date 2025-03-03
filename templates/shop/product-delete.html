@@ -1,0 +1,65 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-danger text-white py-3">
+          <h2 class="mb-0 fs-4"><i class="fas fa-trash-alt me-2"></i>Delete Product</h2>
+        </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-warning border-start border-warning border-4">
+              <h4 class="alert-heading fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Warning!</h4>
+              <p class="mb-0">Are you sure you want to delete the product <strong>{{ product.name }}</strong>?</p>
+              <hr>
+              <p class="mb-0 text-danger fw-bold">This action cannot be undone.</p>
+            </div>
+            
+            <div class="card bg-light mt-4 mb-4">
+              <div class="card-header bg-light">
+                <h5 class="mb-0">Product Information</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p><strong><i class="fas fa-barcode me-2"></i>Code:</strong><br>
+                      {{ product.code }}</p>
+                    <p><strong><i class="fas fa-tag me-2"></i>Category:</strong><br>
+                      {{ product.catagory }}</p>
+                    <p><strong><i class="fas fa-building me-2"></i>Vendor:</strong><br>
+                      {{ product.vendor }}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p><strong><i class="fas fa-dollar-sign me-2"></i>Price:</strong><br>
+                      <span class="text-primary fw-bold">${{ product.price }}</span></p>
+                    <p><strong><i class="fas fa-boxes me-2"></i>Stock:</strong><br>
+                      {{ product.stock }} units</p>
+                  </div>
+                </div>
+                <p><strong><i class="fas fa-align-left me-2"></i>Description:</strong><br>
+                  {{ product.description|truncatewords:50 }}</p>
+              </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-4">
+              <a href="{% url 'product-detail' code=product.code %}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash-alt me-2"></i>Confirm Delete
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="card-footer bg-light text-center text-muted py-3">
+          <small>This action will permanently remove the product from the database</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

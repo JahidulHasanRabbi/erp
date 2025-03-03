@@ -1,16 +1,20 @@
+import random
 from django.db import models
 from django.forms import model_to_dict
 from django.urls import reverse
 from django_extensions.db.fields import AutoSlugField
 
+from user.models import Customer
+
 # Proudct
 
 class Product(models.Model):
+    code = models.CharField(max_length=6, unique=True)
     slug = AutoSlugField(unique=True, populate_from='name')
     name = models.CharField(max_length=255)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.IntegerField()
+    stock = models.IntegerField()
     vendor = models.CharField(max_length=255)
     catagory = models.CharField(max_length=255)
     
@@ -21,22 +25,39 @@ class Product(models.Model):
         return self.name
     
     def get_absolute_url(self):
-        return reverse("product-list", kwargs={"slug": self.slug})
+        return reverse("product-list", kwargs={"code": self.code})
+    
+    def save(self, *args, **kwargs):
+        if not self.code: 
+            self.code = self.generate_unique_product_code()
+        super().save(*args, **kwargs)
+
+
+    @staticmethod
+    def generate_unique_product_code():
+        while True:
+            code = random.randint(100000, 999999) 
+            if not Customer.objects.filter(code=code).exists():
+                return code
     
     def to_json(self):
+        print('model_to_dict(self)', model_to_dict(self))
         product = model_to_dict(self)
-        product['id'] = self.id
+        product['code'] = self.code
         product['text'] = self.name
-        product['quantity'] = 1
-        product['total_product'] = 0
+        product['stock'] = self.stock
+        product['price'] = self.price
+        product['vendor'] = self.vendor
+        product['catagory'] = self.catagory
         return product
+        
 
     class Meta:
         ordering = ['name']
         verbose_name = 'Product'
         verbose_name_plural = 'Products'
 
-#customer
+
 
 
 
@@ -45,10 +66,9 @@ class Product(models.Model):
 class SalesModel(models.Model):
     
     sales_date = models.DateTimeField(auto_now_add=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     tax = models.DecimalField(max_digits=10, decimal_places=2)
-    tax_percentage = models.DecimalField(max_digits=10, decimal_places=2)
     grandtotal = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -73,6 +93,7 @@ class SalesDetailsModel(models.Model):
 
     def __str__(self):
         return f'{self.id} - {self.sales} - {self.product}'
+    
 
     class Meta:
         db_table = 'sales_details'

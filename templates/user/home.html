@@ -1,0 +1,24 @@
+{% extends 'user/base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title text-center">Home</h4>
+        </div>
+        <div class="card-body">
+          {% if user.is_authenticated %}
+            <p>Welcome, {{ user.username }}!</p>
+            <a href="{% url 'logout' %}" class="btn btn-primary">Logout</a>
+            {% else %}
+            <p>You are not logged in.</p>
+            <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+            {% endif %}
+            
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

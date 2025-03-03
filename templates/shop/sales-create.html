@@ -1,0 +1,542 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="sales-header">
+            <h2>Sales Order</h2>
+        </div>
+        
+        <form id="salesForm">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group position-relative">
+                        <label for="customerCode">Customer code*</label>
+                        <input type="text" class="form-control" id="customerCode" required>
+                        <div id="customerDropdown" class="customer-dropdown"></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="customerName">Customer name</label>
+                        <input type="text" class="form-control" id="customerName" readonly>
+                        <input type="hidden" id="customerId">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="orderDate">Order date*</label>
+                        <input type="date" class="form-control" id="orderDate" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary" id="addProductRowButton">
+                                <i class="fas fa-plus"></i> Add Product
+                            </button>
+                        </div>
+                    </div>
+                    <div id="duplicateProductAlert" class="alert alert-warning d-none" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> This product is already added to the order.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="productsTable">
+                            <thead>
+                                <tr>
+                                    <th>ITEM CODE</th>
+                                    <th>ITEM NAME</th>
+                                    <th>QUANTITY</th>
+                                    <th>STOCK</th>
+                                    <th>UNIT PRICE</th>
+                                    <th>TOTAL</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="productRows">
+                                <tr class="product-row">
+                                    <td>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control product-code" placeholder="Search code...">
+                                            <div class="customer-dropdown product-dropdown"></div>
+                                        </div>
+                                    </td>
+                                    <td><input type="text" class="form-control product-name" readonly></td>
+                                    <td>
+                                        <input type="number" class="form-control product-quantity" min="0" value="0">
+                                        <input type="hidden" class="product-id">
+                                        <div class="invalid-feedback">Quantity exceeds available stock!</div>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control product-stock" readonly>
+                                    </td>
+                                    <td><input type="number" class="form-control product-price" step="0.01" readonly></td>
+                                    <td><input type="number" class="form-control product-total" step="0.01" readonly></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-row rounded-circle">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row justify-content-end">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-group row mb-2">
+                                <label class="col-sm-6 col-form-label">Subtotal:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="subtotal" step="0.01" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-2">
+                                <label class="col-sm-6 col-form-label">Tax (%):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="taxRate" step="0.01" value="5">
+                                </div>
+                            </div>
+                            <div class="form-group row mb-2">
+                                <label class="col-sm-6 col-form-label">Tax Amount:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="taxAmount" step="0.01" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-2">
+                                <label class="col-sm-6 col-form-label">Grand Total:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="grandTotal" step="0.01" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-2">
+                                <label class="col-sm-6 col-form-label">Amount Paid:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="amountPaid" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12 text-end">
+                    <button type="button" class="btn btn-danger" id="saveButton">
+                        <i class="fas fa-save"></i> SAVE SALES ORDER
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+        $(document).ready(function() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#orderDate').val(today);
+            
+            $('#customerCode').on('focus keyup', function() {
+                const term = $(this).val();
+                if (term.length >= 0) {
+                    $.ajax({
+                        url: '/get_customers/',
+                        type: 'POST',
+                        data: {
+                            term: term
+                        },
+                        success: function(data) {
+                            console.log("Response received:", data);
+                            let dropdown = $('#customerDropdown');
+                            dropdown.empty();
+                            
+                            if (data.length > 0) {
+                                console.log("Data has items:", data.length);
+                                data.forEach(customer => {
+                                    console.log("Processing customer:", customer);
+                                    dropdown.append(`
+                                        <div class="customer-item" 
+                                             data-id="${customer.id}" 
+                                             data-code="${customer.code}" 
+                                             data-name="${customer.name}">
+                                            ${customer.code} - ${customer.name}
+                                        </div>
+                                    `);
+                                });
+                                dropdown.show();
+                            } else {
+                                console.log("No results found");
+                                dropdown.hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("AJAX Error:", status, error);
+                            console.log("Response:", xhr.responseText);
+                        }
+                    });
+                }
+            });
+            
+            // Handle customer selection
+            $(document).on('click', '.customer-item', function() {
+                const customerId = $(this).data('id');
+                const customerCode = $(this).data('code');
+                const customerName = $(this).data('name');
+                
+                $('#customerId').val(customerId);
+                $('#customerCode').val(customerCode);
+                $('#customerName').val(customerName);
+                $('#customerDropdown').hide();
+            });
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#customerCode, #customerDropdown').length) {
+                    $('#customerDropdown').hide();
+                }
+                
+                if (!$(e.target).closest('.product-code, .product-dropdown').length) {
+                    $('.product-dropdown').hide();
+                }
+            });
+            
+            // Get already added product IDs to filter from dropdown
+            function getAddedProductIds() {
+                let productIds = [];
+                $('.product-row').each(function() {
+                    const productId = $(this).find('.product-id').val();
+                    if (productId) {
+                        productIds.push(productId);
+                    }
+                });
+                return productIds;
+            }
+            
+            // Product search
+            $(document).on('focus keyup', '.product-code', function() {
+                const term = $(this).val();
+                const dropdown = $(this).siblings('.product-dropdown');
+                const addedProductIds = getAddedProductIds();
+                
+                if (term.length >= 0) {
+                    $.ajax({
+                        url: '/get-products/',
+                        type: 'POST',
+                        data: {
+                            term: term
+                        },
+                        success: function(data) {
+                            dropdown.empty();
+                            
+                            if (data.length > 0) {
+                                // Filter out already added products
+                                const filteredData = data.filter(product => 
+                                    !addedProductIds.includes(product.id.toString())
+                                );
+                                
+                                if (filteredData.length > 0) {
+                                    filteredData.forEach(product => {
+                                        dropdown.append(`
+                                            <div class="product-item" 
+                                                data-id="${product.id}" 
+                                                data-code="${product.code}"
+                                                data-name="${product.text}" 
+                                                data-price="${product.price}"
+                                                data-stock="${product.stock}">
+                                                ${product.code} - ${product.text} (Stock: ${product.stock})
+                                            </div>
+                                        `);
+                                    });
+                                    dropdown.show();
+                                } else {
+                                    dropdown.hide();
+                                }
+                            } else {
+                                dropdown.hide();
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Handle product selection
+            $(document).on('click', '.product-item', function() {
+                const row = $(this).closest('.product-row');
+                const productId = $(this).data('id');
+                const productCode = $(this).data('code');
+                const productName = $(this).data('name');
+                const productPrice = $(this).data('price');
+                const productStock = $(this).data('stock');
+                
+                row.find('.product-id').val(productId);
+                row.find('.product-code').val(productCode);
+                row.find('.product-name').val(productName);
+                row.find('.product-price').val(productPrice);
+                
+                // Set initial stock value
+                const quantity = parseInt(row.find('.product-quantity').val()) || 0;
+                const remainingStock = productStock;
+                row.find('.product-stock').val(remainingStock);
+                
+                // Calculate total
+                calculateRowTotal(row);
+                calculateTotals();
+                
+                $(this).closest('.product-dropdown').hide();
+            });
+            
+            // Add product row button
+            $('#addProductRowButton').on('click', function() {
+                addNewProductRow();
+            });
+            
+            // Add new product row
+            function addNewProductRow() {
+                const newRow = `
+                    <tr class="product-row">
+                        <td>
+                            <div class="position-relative">
+                                <input type="text" class="form-control product-code" placeholder="Search code...">
+                                <div class="customer-dropdown product-dropdown"></div>
+                            </div>
+                        </td>
+                        <td><input type="text" class="form-control product-name" readonly></td>
+                        <td>
+                            <input type="number" class="form-control product-quantity" min="0" value="0">
+                            <input type="hidden" class="product-id">
+                            <div class="invalid-feedback">Quantity exceeds available stock!</div>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control product-stock" readonly>
+                        </td>
+                        <td><input type="number" class="form-control product-price" step="0.01" readonly></td>
+                        <td><input type="number" class="form-control product-total" step="0.01" readonly></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-row rounded-circle">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                $('#productRows').append(newRow);
+            }
+            
+            // Delete product row
+            $(document).on('click', '.delete-row', function() {
+                // Don't delete if it's the only row
+                if ($('.product-row').length > 1) {
+                    $(this).closest('.product-row').remove();
+                    calculateTotals();
+                }
+            });
+            
+            // Update quantity and recalculate
+            $(document).on('change', '.product-quantity', function() {
+                const row = $(this).closest('.product-row');
+                const productId = row.find('.product-id').val();
+                
+                if (productId) {
+                    // Find the original stock from the product data
+                    const originalStock = getOriginalStock(row);
+                    const quantity = parseInt($(this).val()) || 0;
+                    
+                    // Calculate remaining stock
+                    const remainingStock = originalStock - quantity;
+                    
+                    // Check if quantity exceeds stock
+                    if (remainingStock < 0) {
+                        $(this).addClass('is-invalid');
+                        row.addClass('table-danger');
+                    } else {
+                        $(this).removeClass('is-invalid');
+                        row.removeClass('table-danger');
+                        
+                        // Update the displayed stock
+                        row.find('.product-stock').val(remainingStock);
+                    }
+                    
+                    calculateRowTotal(row);
+                    calculateTotals();
+                }
+            });
+            
+            // Get original stock for a product (before quantity reduction)
+            function getOriginalStock(row) {
+                const quantity = parseInt(row.find('.product-quantity').val()) || 0;
+                const currentStock = parseInt(row.find('.product-stock').val()) || 0;
+                
+                // Original stock = current displayed stock + current quantity
+                return currentStock + quantity;
+            }
+            
+            // Calculate total for a single row
+            function calculateRowTotal(row) {
+                const quantity = parseFloat(row.find('.product-quantity').val()) || 0;
+                const price = parseFloat(row.find('.product-price').val()) || 0;
+                const total = quantity * price;
+                
+                row.find('.product-total').val(total.toFixed(2));
+                
+                // Update the stock based on the quantity
+                const originalStock = getOriginalStock(row);
+                const remainingStock = originalStock - quantity;
+                row.find('.product-stock').val(remainingStock);
+            }
+            // Get original stock for a product (before quantity reduction)
+            function getOriginalStock(row) {
+                const quantity = parseInt(row.find('.product-quantity').val()) || 0;
+                const currentStock = parseInt(row.find('.product-stock').val()) || 0;
+                
+                // Original stock = current displayed stock + current quantity
+                return currentStock + quantity;
+            }
+            
+            // Update tax rate and recalculate
+            $('#taxRate').on('change', function() {
+                calculateTotals();
+            });
+            
+            // Calculate total for a single row
+            function calculateRowTotal(row) {
+                const quantity = parseFloat(row.find('.product-quantity').val()) || 0;
+                const price = parseFloat(row.find('.product-price').val()) || 0;
+                const total = quantity * price;
+                
+                row.find('.product-total').val(total.toFixed(2));
+            }
+            
+            // Calculate all totals
+            function calculateTotals() {
+                let subtotal = 0;
+                
+                $('.product-total').each(function() {
+                    subtotal += parseFloat($(this).val()) || 0;
+                });
+                
+                const taxRate = parseFloat($('#taxRate').val()) || 0;
+                const taxAmount = subtotal * (taxRate / 100);
+                const grandTotal = subtotal + taxAmount;
+                
+                $('#subtotal').val(subtotal.toFixed(2));
+                $('#taxAmount').val(taxAmount.toFixed(2));
+                $('#grandTotal').val(grandTotal.toFixed(2));
+            }
+            
+            // Save order
+            $('#saveButton').on('click', function() {
+                // Check if any product exceeds stock
+                let stockExceeded = false;
+                $('.product-row').each(function() {
+                    const quantity = parseInt($(this).find('.product-quantity').val());
+                    const originalStock = getOriginalStock($(this));
+                    const productId = $(this).find('.product-id').val();
+                    
+                    if (productId && quantity > originalStock) {
+                        stockExceeded = true;
+                        $(this).find('.product-quantity').addClass('is-invalid');
+                        $(this).addClass('table-danger');
+                    }
+                });
+                
+                if (stockExceeded) {
+                    alert('Some products exceed available stock! Please adjust quantities.');
+                    return;
+                }
+                
+                const customerId = $('#customerId').val();
+                if (!customerId) {
+                    alert('Please select a customer');
+                    return;
+                }
+                
+                let hasProducts = false;
+                let productsData = [];
+                
+                $('.product-row').each(function() {
+                    const productId = $(this).find('.product-id').val();
+                    
+                    if (productId) {
+                        hasProducts = true;
+                        const quantity = parseInt($(this).find('.product-quantity').val());
+                        const price = parseFloat($(this).find('.product-price').val());
+                        const total = parseFloat($(this).find('.product-total').val());
+                        
+                        productsData.push({
+                            product: productId,
+                            quantity: quantity,
+                            price: price,
+                            total: total
+                        });
+                    }
+                });
+                
+                if (!hasProducts) {
+                    alert('Please add at least one product');
+                    return;
+                }
+                
+                const amountPaid = parseFloat($('#amountPaid').val()) || 0;
+                const grandTotal = parseFloat($('#grandTotal').val());
+                
+                if (amountPaid <= 0) {
+                    alert('Please enter the amount paid');
+                    return;
+                }
+                
+                const orderData = {
+                    customer: customerId,
+                    subtotal: parseFloat($('#subtotal').val()),
+                    tax: parseFloat($('#taxAmount').val()),
+                    grandtotal: grandTotal,
+                    amount_paid: amountPaid,
+                    products: productsData
+                };
+                
+                $.ajax({
+                    url: '',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(orderData),
+                    headers: {
+                        'X-CSRFToken': csrftoken  
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.success);
+                            window.location.href = response.redirect;
+                        } else if (response.error) {
+                            alert(response.error);
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Error: ' + xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
